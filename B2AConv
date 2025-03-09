@@ -1,0 +1,76 @@
+import wave
+import struct
+import numpy as np
+import os
+
+def data_to_audio(file_path, output_wav, freq_0=1000, freq_1=2000, sample_rate=44100, duration=0.05):
+    """
+    Convert file data to audio (simple FSK-style encoding)
+    """
+    with open(file_path, 'rb') as f:
+        data = f.read()
+
+    # Prepare WAV file
+    wav_file = wave.open(output_wav, 'w')
+    wav_file.setnchannels(1)
+    wav_file.setsampwidth(2)
+    wav_file.setframerate(sample_rate)
+
+    def write_tone(freq):
+        samples = int(sample_rate * duration)
+        for i in range(samples):
+            value = int(32767.0 * 0.5 * 
+                        struct.pack('<h', int(32767.0 * 0.5 * (2 ** 0.5) * 
+                        (i / sample_rate * freq * 2.0 * 3.141592653589793))))
+            wav_file.writeframesraw(value)
+
+    # Encode data
+    for byte in data:
+        bits = f'{byte:08b}'
+        for bit in bits:
+            freq = freq_1 if bit == '1' else freq_0
+            write_tone(freq)
+
+    # Close file
+    wav_file.close()
+    print(f"Audio file saved as: {output_wav}")
+
+
+def audio_to_data(input_wav, output_file, freq_0=1000, freq_1=2000, sample_rate=44100, duration=0.05):
+    """
+    Decode audio back to binary data
+    """
+    wav_file = wave.open(input_wav, 'r')
+    frames = wav_file.readframes(-1)
+    samples = np.frombuffer(frames, dtype=np.int16)
+    samples_per_bit = int(sample_rate * duration)
+
+    bits = ''
+    for i in range(0, len(samples), samples_per_bit):
+        chunk = samples[i:i + samples_per_bit]
+        freq = np.fft.fftfreq(len(chunk), 1/sample_rate)
+        spectrum = np.abs(np.fft.fft(chunk))
+        peak_freq = freq[np.argmax(spectrum)]
+        
+        if abs(peak_freq - freq_1) < abs(peak_freq - freq_0):
+            bits += '1'
+        else:
+            bits += '0'
+
+    # Convert bits to bytes
+    byte_data = bytearray([int(bits[i:i+8], 2) for i in range(0, len(bits), 8)])
+
+    # Save to file
+    with open(output_file, 'wb') as f:
+        f.write(byte_data)
+    print(f"Decoded file saved as: {output_file}")
+
+
+# Example usage
+input_file = 'example.txt'  # Replace with your file
+output_wav = 'output.wav'
+recovered_file = 'recovered.txt'
+
+data_to_audio(input_file, output_wav)
+audio_to_data(output_wav, recovered_file)
+
