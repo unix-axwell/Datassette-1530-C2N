@@ -1,0 +1,2 @@
+It converts any file into an audio signal!  It uses two frequencies to represent bits ( 1000 Hz for 0 and 2000 Hz for 1). The result is a WAV file you can play or record to your Datasette (or any other audio tape recorder).
+Cassette storage is small (about 100-200 KB per side), so it’s best for tiny files, config backups, or even encrypted text snippets. You could compress and split files if you need more room.
